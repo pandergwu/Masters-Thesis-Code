@@ -280,7 +280,8 @@ grid_gdf.drop(columns='geometry').to_excel(output_file_path, index=False)
 print(f"Band data added and saved to {output_file_path}")
 
 
-#%% Visualize dNBR data from "4_Mntc_KF&dNBR" excel.
+#%% Step 6
+# Visualize dNBR data from "4_Mntc_KF&dNBR" excel.
 
 import pandas as pd
 import geopandas as gpd
