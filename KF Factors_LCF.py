@@ -362,12 +362,63 @@ def sample_raster_at_grid(raster_data, transform, grid_gdf):
     return sampled_values
 
 # Sample raster values at grid locations
-grid_gdf['Band5_Before'] = sample_raster_at_grid(pre_fire_nir_clipped, pre_fire_transform, grid_gdf)
+grid_gdf['Band4_Before'] = sample_raster_at_grid(pre_fire_nir_clipped, pre_fire_transform, grid_gdf)
 grid_gdf['Band7_Before'] = sample_raster_at_grid(pre_fire_swir_clipped, pre_fire_transform, grid_gdf)
-grid_gdf['Band5_After'] = sample_raster_at_grid(post_fire_nir_clipped, post_fire_transform, grid_gdf)
+grid_gdf['Band4_After'] = sample_raster_at_grid(post_fire_nir_clipped, post_fire_transform, grid_gdf)
 grid_gdf['Band7_After'] = sample_raster_at_grid(post_fire_swir_clipped, post_fire_transform, grid_gdf)
 
 # Save the updated grid with band values to a new Excel file
 grid_gdf.drop(columns='geometry').to_excel(output_file_path, index=False)
 
 print(f"Band data added and saved to {output_file_path}")
+
+#%%
+
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from shapely.geometry import Polygon
+from pyproj import CRS
+
+# Load the Excel file with dNBR data
+file_path = "D:\\Masters\\Thesis Data\\LCF Data\\3_LCF_dNBR.xlsx"
+df = pd.read_excel(file_path)
+
+# Print the min and max UTM X and Y coordinates
+print("UTM_X range:", df['UTM_X'].min(), "-", df['UTM_X'].max())
+print("UTM_Y range:", df['UTM_Y'].min(), "-", df['UTM_Y'].max())
+
+# Ensure that the DataFrame has the correct CRS (EPSG:32611 for UTM Zone 11N)
+crs = CRS.from_epsg(32611)
+
+# Function to create a polygon for each grid cell based on the SW corner
+def create_polygon(utm_x, utm_y, grid_size=30):
+    return Polygon([
+        (utm_x, utm_y),
+        (utm_x, utm_y + grid_size),
+        (utm_x + grid_size, utm_y + grid_size),
+        (utm_x + grid_size, utm_y),
+        (utm_x, utm_y)
+    ])
+
+# Convert the DataFrame to a GeoDataFrame with polygon geometries
+df['geometry'] = df.apply(lambda row: create_polygon(row['UTM_X'], row['UTM_Y']), axis=1)
+gdf = gpd.GeoDataFrame(df, geometry='geometry', crs=crs)
+
+# Print a few sample geometries to verify correctness
+print(gdf.geometry.head())
+
+# Plot the data using GeoPandas without Cartopy
+fig, ax = plt.subplots(figsize=(12, 12))
+
+# Plot the geometry and dNBR values
+gdf.plot(column='dNBR', cmap='RdYlBu', ax=ax, edgecolor='none')
+
+# Set the title for the plot
+ax.set_title('dNBR Values without Cartopy')
+
+# Ensure equal aspect ratio
+ax.set_aspect('equal')
+
+# Show the plot
+plt.show()
